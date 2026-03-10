@@ -1,6 +1,6 @@
 import java.util.*;
 
-class DNSEntry{
+class solution{
     String ip;
     long expiry;
 
