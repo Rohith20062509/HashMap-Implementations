@@ -1,78 +1,103 @@
-import java.util.HashMap;
+import java.util.*;
 
-class TokenBucket {
+class TrieNode {
+    Map<Character, TrieNode> children = new HashMap<>();
+    boolean isEnd = false;
+}
 
-    int tokens;
-    int maxTokens;
-    long lastRefillTime;
-    int refillRate; // tokens per second
+class AutocompleteSystem {
 
-    TokenBucket(int maxTokens, int refillRate) {
-        this.maxTokens = maxTokens;
-        this.tokens = maxTokens;
-        this.refillRate = refillRate;
-        this.lastRefillTime = System.currentTimeMillis();
+    TrieNode root = new TrieNode();
+    HashMap<String, Integer> frequency = new HashMap<>();
+
+    // Insert query into system
+    public void insert(String query) {
+
+        TrieNode node = root;
+
+        for (char c : query.toCharArray()) {
+            node.children.putIfAbsent(c, new TrieNode());
+            node = node.children.get(c);
+        }
+
+        node.isEnd = true;
+
+        frequency.put(query, frequency.getOrDefault(query, 0) + 1);
     }
 
-    void refill() {
-        long now = System.currentTimeMillis();
-        long elapsed = (now - lastRefillTime) / 1000;
+    // DFS to collect suggestions
+    void collect(TrieNode node, String prefix, List<String> results) {
 
-        int tokensToAdd = (int) (elapsed * refillRate);
+        if (node.isEnd) {
+            results.add(prefix);
+        }
 
-        if (tokensToAdd > 0) {
-            tokens = Math.min(maxTokens, tokens + tokensToAdd);
-            lastRefillTime = now;
+        for (char c : node.children.keySet()) {
+            collect(node.children.get(c), prefix + c, results);
         }
     }
 
-    boolean allowRequest() {
-        refill();
+    // Search suggestions
+    public List<String> search(String prefix) {
 
-        if (tokens > 0) {
-            tokens--;
-            return true;
+        TrieNode node = root;
+
+        for (char c : prefix.toCharArray()) {
+            if (!node.children.containsKey(c)) {
+                return new ArrayList<>();
+            }
+            node = node.children.get(c);
         }
 
-        return false;
+        List<String> results = new ArrayList<>();
+        collect(node, prefix, results);
+
+        // Sort by frequency
+        results.sort((a, b) -> frequency.get(b) - frequency.get(a));
+
+        if (results.size() > 10) {
+            return results.subList(0, 10);
+        }
+
+        return results;
+    }
+
+    // Update frequency when search happens
+    public void updateFrequency(String query) {
+        frequency.put(query, frequency.getOrDefault(query, 0) + 1);
     }
 }
 
-public class Solution{
-
-    static HashMap<String, TokenBucket> clients = new HashMap<>();
-
-    static int LIMIT = 1000;
-    static int REFILL_RATE = 1000 / 3600; // tokens per second
-
-    static void checkRateLimit(String clientId) {
-
-        clients.putIfAbsent(clientId, new TokenBucket(LIMIT, REFILL_RATE));
-
-        TokenBucket bucket = clients.get(clientId);
-
-        if (bucket.allowRequest()) {
-            System.out.println("Allowed (" + bucket.tokens + " requests remaining)");
-        } else {
-            System.out.println("Denied (0 requests remaining, retry later)");
-        }
-    }
-
-    static void getRateLimitStatus(String clientId) {
-
-        TokenBucket bucket = clients.get(clientId);
-
-        System.out.println("{used: " + (LIMIT - bucket.tokens) +
-                ", limit: " + LIMIT +
-                ", reset: " + (bucket.lastRefillTime + 3600000) + "}");
-    }
+public class Solution {
 
     public static void main(String[] args) {
 
-        checkRateLimit("abc123");
-        checkRateLimit("abc123");
-        checkRateLimit("abc123");
+        AutocompleteSystem system = new AutocompleteSystem();
 
-        getRateLimitStatus("abc123");
+        // Insert queries
+        system.insert("java tutorial");
+        system.insert("javascript");
+        system.insert("java download");
+        system.insert("java tutorial");
+        system.insert("java download");
+        system.insert("java download");
+
+        // Search suggestions
+        List<String> suggestions = system.search("jav");
+
+        System.out.println("Search Results for 'jav':");
+
+        int rank = 1;
+
+        for (String s : suggestions) {
+            System.out.println(rank + ". " + s + " (" + system.frequency.get(s) + " searches)");
+            rank++;
+        }
+
+        // Update frequency example
+        system.updateFrequency("java tutorial");
+
+        System.out.println("\nUpdated frequency of 'java tutorial': "
+                + system.frequency.get("java tutorial"));
     }
 }
