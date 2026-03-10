@@ -12,7 +12,7 @@ class Event {
     }
 }
 
-public class solution {
+public class Solution{
 
     // pageUrl -> visit count
     static HashMap<String, Integer> pageViews = new HashMap<>();
