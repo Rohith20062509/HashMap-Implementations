@@ -1,6 +1,6 @@
 import java.util.*;
 
-class solution{
+class DNSEntry{
     String ip;
     long expiry;
 
@@ -10,7 +10,7 @@ class solution{
     }
 }
 
-public class DNSCache {
+public class solution {
 
     static HashMap<String,DNSEntry> cache = new HashMap<>();
 
